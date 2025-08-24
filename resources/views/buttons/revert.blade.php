@@ -1,14 +1,14 @@
 @if ($crud->hasAccess('delete', $entry))
-    <span onclick="revertEntry(this)" data-route="{{ url($crud->route.'/'.$entry->getKey()) }}" class="btn btn-sm btn-link" data-button-type="revert">
+    <a onclick="revertEntry(this)" data-route="{{ url($crud->route.'/'.$entry->getKey()) }}" class="btn btn-sm btn-link" data-button-type="revert">
         <span>
             <i class="la la-undo"></i>
             {{ ucfirst(trans('backpack.translation-manager::translation_manager.revert')) }}
         </span>
-    </span>
+    </a>
 @endif
 
 @push('after_scripts') @if (request()->ajax()) @endpush @endif
-@bassetBlock('backpack/translation-manager/buttons/revert-button-'.app()->getLocale().'.js')
+@bassetBlock('backpack/translation-manager/buttons/revert-button-'.app()->getLocale().'-v20250824.js')
 <script>
     if (typeof revertEntry !== 'function') {
         function revertEntry(button) {
@@ -45,7 +45,7 @@
 		    dangerMode: true,
             }).then((value) => {
                 if (! value) return;
-                
+
                 $.ajax({
                     url: button.dataset.route,
                     type: 'DELETE',
@@ -69,10 +69,10 @@
                             // Hide the modal, if any
                             $('.modal').modal('hide');
                         } else {
-                            // if the result is an array, it means 
+                            // if the result is an array, it means
                             // we have notification bubbles to show
                             if (result instanceof Object) {
-                                // trigger one or more bubble notifications 
+                                // trigger one or more bubble notifications
                                 Object.entries(result).forEach(([type, entry]) => {
                                     entry.forEach(text => new Noty({ type, text}).show());
                                 });

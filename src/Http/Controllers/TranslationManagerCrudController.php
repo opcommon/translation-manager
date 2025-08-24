@@ -6,6 +6,7 @@ use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Backpack\TranslationManager\Models\TranslationLine;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Str;
 
@@ -17,21 +18,29 @@ class TranslationManagerCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\TranslationManager\Http\Operations\CanUseEditableColumns;
 
+    use AuthorizesRequests;
+
     /**
      * Setup
      */
     public function setup(): void
     {
         CRUD::setModel(TranslationLine::class);
-        CRUD::setRoute(config('backpack.base.route_prefix').'/translation-manager');
+        CRUD::setRoute(config('backpack.base.route_prefix') . '/translation-manager');
         CRUD::setEntityNameStrings(__('backpack.translation-manager::translation_manager.translation_line'), __('backpack.translation-manager::translation_manager.translation_lines'));
 
         // access to delete button
-        CRUD::setAccessCondition(['delete'], fn (TranslationLine $entry) => $entry->database);
+        CRUD::setAccessCondition(['delete'], fn(TranslationLine $entry) => $entry->database);
 
         // disable create
-        if (! config('backpack.translation-manager.create', false)) {
+        if (! config('backpack.translation-manager.create', false) || ! backpack_user()->can('Create translation')) {
             CRUD::denyAccess('create');
+        }
+        if (!backpack_user()->can('Update translation')) {
+            CRUD::denyAccess(['update']);
+        }
+        if (!backpack_user()->can('Delete translation')) {
+            CRUD::denyAccess(['delete']);
         }
     }
 
@@ -40,13 +49,15 @@ class TranslationManagerCrudController extends CrudController
      */
     protected function setupListOperation(): void
     {
+        $this->authorize('browse', CRUD::getModel());
+
         CRUD::addColumn([
             'name'        => 'text',
             'type'        => $this->editableColumnsEnabled() ? 'editable_text' : 'text',
             'label'       => ucfirst(__('backpack.translation-manager::translation_manager.text')),
-            'value'       => fn (TranslationLine $entry): mixed => $entry->getTranslation(App::getLocale()),
+            'value'       => fn(TranslationLine $entry): mixed => $entry->getTranslation(App::getLocale()),
             'searchLogic' => function (Builder $query, mixed $column, string $search): void {
-                $query->orWhere('search', 'like', '%'.Str::slug($search).'%');
+                $query->orWhere('search', 'like', '%' . Str::slug($search) . '%');
             },
         ]);
 
@@ -55,7 +66,7 @@ class TranslationManagerCrudController extends CrudController
             'label' => ucfirst(__('backpack.translation-manager::translation_manager.key')),
             'type'  => 'custom_html',
             'value' => function (TranslationLine $entry): string {
-                return '<span class="badge text-bg-secondary badge-primary" title="'.$entry->group_key.'">'.Str::limit($entry->group_key, 50).'</span>';
+                return '<span class="badge text-bg-secondary badge-primary" title="' . $entry->group_key . '">' . Str::limit($entry->group_key, 50) . '</span>';
             },
             'orderable'  => true,
             'orderLogic' => function (Builder $query, mixed $column, mixed $columnDirection): Builder {
@@ -77,7 +88,7 @@ class TranslationManagerCrudController extends CrudController
                 'value' => function (TranslationLine $entry): string {
                     $value = $entry->database ? 'database' : 'file';
 
-                    return '<i class="las la-'.$value.'" title="'.$value.'"></i>';
+                    return '<i class="las la-' . $value . '" title="' . $value . '"></i>';
                 },
             ]);
         }
@@ -229,16 +240,19 @@ class TranslationManagerCrudController extends CrudController
         $locales = config('backpack.crud.locales');
         $localesCount = count($locales);
 
-        $rules = collect($locales)->mapWithKeys(fn ($locale, $key) => ['text.'.$key => 'bail|present'])->toArray();
-        $rules['text'] = ['bail', 'min:'.$localesCount, 'max:'.$localesCount];
+        $rules = collect($locales)->mapWithKeys(fn($locale, $key) => ['text.' . $key => 'bail|present'])->toArray();
+        $rules['text'] = ['bail', 'min:' . $localesCount, 'max:' . $localesCount];
 
         return array_merge($rules, $rulesToMerge);
     }
 
     private function getValidationMessagesWithLocale(array $messagesToMerge = []): array
     {
-        return array_merge([
-            'text.*' => __('backpack.translation-manager::translation_manager.validation_missing_languages')],
-            $messagesToMerge);
+        return array_merge(
+            [
+                'text.*' => __('backpack.translation-manager::translation_manager.validation_missing_languages')
+            ],
+            $messagesToMerge
+        );
     }
 }

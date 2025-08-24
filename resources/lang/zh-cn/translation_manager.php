@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'translation_line' => '翻译行',
-    'translation_lines' => '翻译行列表',
+    'translation_line' => '翻译语言',
+    'translation_lines' => '翻译语言列表',
 
     'group' => '组',
     'key' => '键',

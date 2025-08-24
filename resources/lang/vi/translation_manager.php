@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'translation_line' => 'dòng dịch',
-    'translation_lines' => 'các dòng dịch',
+    'translation_line' => 'Dịch ngôn ngữ',
+    'translation_lines' => 'Dịch ngôn ngữ',
 
     'group' => 'nhóm',
     'key' => 'khóa',
